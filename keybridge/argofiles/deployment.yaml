@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  keybridge
+  namespace: devops
+  labels:
+    app:  keybridge
+spec:
+  selector:
+    matchLabels:
+      app: keybridge
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app:  keybridge
+    spec:
+      containers:
+      - name:  keybridge-container
+        image:  akwasi14/keybridge:v1a
+        ports:
+        - containerPort:  5000
+          name:  keybridge-port
