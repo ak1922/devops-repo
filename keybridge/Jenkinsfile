@@ -1,0 +1,62 @@
+pipeline {
+    agent {
+        label 'c2'
+    }
+    options {
+        buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '7', numToKeepStr: '20')
+    }
+    environment {
+        dockerhub_cred = credentials('dockerhub_cred')
+        DOCKER_IMAGE = "akwasi14/keybridge"
+        DOCKER_TAG = "$BUILD_NUMBER"
+    }
+    stages {
+        stage('Checkout Stage') {
+            steps {
+                echo '****** Checking out code from GitHub ******'
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/ak1922/devops-repo.git']])
+                sh 'ls -ltr'
+            }
+        }
+        stage('Docker Build Stage') {
+            steps {
+                dir('keybridge') {
+                    echo '****** Building Docker Image ******'
+                    sh 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
+                    sh 'docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest'
+                }
+            }
+        }
+        stage('Docker Push Stage') {
+            steps {
+                dir('keybridge') {
+                    echo '****** Pushing Docker Image ******'
+                    echo '****** Logging into DockerHub ******'
+                    sh 'echo $dockerhub_cred_PSW | docker login -u $dockerhub_cred_USR --password-stdin'
+                    sh 'docker push ${DOCKER_IMAGE}:${DOCKER_TAG}'
+                    sh 'docker push ${DOCKER_IMAGE}:latest'
+                }
+            }
+        }
+        stage('ArgoCD App Deployment Stage') {
+            steps {
+                dir('keybridge') {
+                    echo '****** ArgoCD deployment ******'
+                    sh 'kubectl apply -f argocd-app.yaml'
+                    sh 'kubectl get all -n devops'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Job is Active!'
+        }
+        success {
+            echo 'Job run succeeded!'
+        }
+        failure {
+            echo 'Job run was a failure!'
+        }
+    }
+}
