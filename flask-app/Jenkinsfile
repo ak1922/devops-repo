@@ -20,16 +20,17 @@ pipeline {
         }
         stage('Docker Build Stage') {
             steps {
-                dir('keybridge') {
+                dir('flask-app') {
                     echo '****** Building Docker Image ******'
                     sh 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
                     sh 'docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest'
+                    sh 'ls -ltr'
                 }
             }
         }
         stage('Docker Push Stage') {
             steps {
-                dir('keybridge') {
+                dir('flask-app') {
                     echo '****** Pushing Docker Image ******'
                     echo '****** Logging into DockerHub ******'
                     sh 'echo $dockerhub_cred_PSW | docker login -u $dockerhub_cred_USR --password-stdin'
@@ -40,7 +41,7 @@ pipeline {
         }
         stage('ArgoCD App Deployment Stage') {
             steps {
-                dir('keybridge') {
+                dir('flask-app') {
                     echo '****** ArgoCD deployment ******'
                     sh 'kubectl apply -f argocd-app.yaml'
                     sh 'kubectl get all -n devops'
